@@ -1,0 +1,23 @@
+services:
+  backend-userapp:
+    image: mysql:8.0
+    container_name: backend-userapp
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: backend-userapp
+      MYSQL_USER: izai
+      MYSQL_PASSWORD: vanegas
+    ports:
+      - "3306:3306"
+    volumes:
+      - backend-userapp_data:/var/lib/mysql
+    restart: always
+    networks:
+      - userapp-network
+networks:
+  userapp-network:
+    driver: bridge
+volumes:
+  backend-userapp_data:
+    driver: local
+

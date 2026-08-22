@@ -1,0 +1,12 @@
+#spring.application.name=backend-usersapp
+spring:
+  application:
+    name: backend-usersapp
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/backend-userapp
+    username: izai
+    password: vanegas
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
