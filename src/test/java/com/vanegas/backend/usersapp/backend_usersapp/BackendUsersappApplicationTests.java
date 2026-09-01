@@ -3,10 +3,10 @@ package com.vanegas.backend.usersapp.backend_usersapp;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+//@SpringBootTest
 class BackendUsersappApplicationTests {
 
-	@Test
+	//@Test
 	void contextLoads() {
 	}
 

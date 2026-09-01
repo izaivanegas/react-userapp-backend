@@ -2,6 +2,7 @@ package com.vanegas.backend.usersapp.backend_usersapp.auth.filters;
 
 
 import com.vanegas.backend.usersapp.backend_usersapp.models.entities.User;
+import io.jsonwebtoken.Jwts;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,21 +11,28 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+//import com.fasterxml.jackson.databind.ObjectMapper;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import static com.vanegas.backend.usersapp.backend_usersapp.auth.TokenJwtConfig.*;
 
 
+
 public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
     private final AuthenticationManager authenticationManager;
+
 
     public JwtAuthenticationFilter(AuthenticationManager authenticationManager) {
         this.authenticationManager = authenticationManager;
@@ -44,6 +52,8 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
             password = user.getPassword();
             logger.info("User name: " + username);
             logger.info("Password: " + password);
+
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -56,8 +66,15 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
         String username = ((org.springframework.security.core.userdetails.User)authResult.getPrincipal()).getUsername();
         //String password = ((org.springframework.security.core.userdetails.User)authResult.getPrincipal()).getPassword();6
-        String originalInput  = SECRET_KEY + username;
-        String token = Base64.getEncoder().encodeToString(originalInput.getBytes(StandardCharsets.UTF_8));
+
+
+
+        String token = Jwts.builder().subject(username)
+                        .signWith(SECRET_KEY)
+                                .issuedAt(new Date())
+                                        .expiration(new Date(System.currentTimeMillis() + 3600000))
+                                                .compact();
+
         response.addHeader(HEADER_AUTHORIZATION, PREFIX_TOKEN + token);
         Map<String,Object> body = new HashMap<>();
         body.put("token", token);
