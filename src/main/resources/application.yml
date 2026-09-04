@@ -1,12 +1,32 @@
-#spring.application.name=backend-usersapp
 spring:
   application:
     name: backend-usersapp
+
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/backend-userapp
+    url: jdbc:mysql://127.0.0.1:3306/backend-userapp?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: izai
     password: vanegas
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+    defer-datasource-initialization: true
+
+
+  sql:
+    init:
+      mode: always
+      platform: mysql
+      continue-on-error: false
+
+# Logging para ver la ejecución
+logging:
+  level:
+    org.springframework.jdbc.datasource.init: INFO
+    org.hibernate.SQL: INFO

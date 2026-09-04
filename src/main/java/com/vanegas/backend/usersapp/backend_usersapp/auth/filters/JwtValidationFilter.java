@@ -32,9 +32,7 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
 
-
         String header = request.getHeader(HEADER_AUTHORIZATION);
-
         if (header == null || !header.startsWith(PREFIX_TOKEN)) {
             //Dejamos que regrese a SpringSecurityFilter
             chain.doFilter(request, response);
@@ -55,9 +53,27 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
             Claims claims = Jwts.parser().verifyWith(SECRET_KEY).build().parseSignedClaims(token).getPayload();
             username = claims.getSubject();
 
+            Object authoritiesClaims = claims.get("authorities");
 
-            List<GrantedAuthority> authorities = new ArrayList<>();
-            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+
+            System.out.println("..--<"+Arrays.asList(new ObjectMapper()
+                    .readValue(
+                            authoritiesClaims.toString().getBytes(),SimpleGrantedAuthority[].class
+                    ))
+            );
+
+            Collection<? extends GrantedAuthority> authorities =
+                    Arrays.asList(
+                            new ObjectMapper()
+                                    .readValue(
+                                            authoritiesClaims.toString().getBytes(),SimpleGrantedAuthority[].class
+                                    )
+                    );
+
+            authorities.stream().forEach(authority -> System.out.println("Authority2: " + authority.getAuthority()));
+
+            //authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);
             chain.doFilter(request, response);

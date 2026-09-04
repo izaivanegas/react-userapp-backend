@@ -11,8 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -34,8 +36,13 @@ public class JpaUserDetailsService implements UserDetailsService {
         com.vanegas.backend.usersapp.backend_usersapp.models.entities.User user = dbUser.orElseThrow();
 
 
-        List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+
+
+        List<GrantedAuthority> authorities = user.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.getNombre())).collect(Collectors.toList());
+
+        authorities.stream().forEach(authority -> System.out.println("Role: " + authority.getAuthority()));
+
+
         return new User(user.getUsername(), user.getPassword(), true, true, true, true, authorities);
     }
 

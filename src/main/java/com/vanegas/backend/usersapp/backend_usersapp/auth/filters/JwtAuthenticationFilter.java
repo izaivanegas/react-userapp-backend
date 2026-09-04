@@ -2,6 +2,7 @@ package com.vanegas.backend.usersapp.backend_usersapp.auth.filters;
 
 
 import com.vanegas.backend.usersapp.backend_usersapp.models.entities.User;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -11,6 +12,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -20,10 +22,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static com.vanegas.backend.usersapp.backend_usersapp.auth.TokenJwtConfig.*;
 
@@ -63,17 +62,40 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException, ServletException {
-
+        System.out.println("successfulAuthentication........");
         String username = ((org.springframework.security.core.userdetails.User)authResult.getPrincipal()).getUsername();
         //String password = ((org.springframework.security.core.userdetails.User)authResult.getPrincipal()).getPassword();6
 
 
 
-        String token = Jwts.builder().subject(username)
-                        .signWith(SECRET_KEY)
-                                .issuedAt(new Date())
-                                        .expiration(new Date(System.currentTimeMillis() + 3600000))
-                                                .compact();
+        Collection<? extends GrantedAuthority> roles =  authResult.getAuthorities();
+
+
+        Collection<? extends GrantedAuthority> filteredRoles  = roles.stream().filter(role ->  role.getAuthority().startsWith("ROLE_")).toList();
+
+        roles = filteredRoles;
+
+        roles.stream().forEach(role -> System.out.println("Role A: " + role.getAuthority()));
+
+        //Ahora se esta pasando con la nueva version de jwt por que la anterior manera esta deprecated
+
+
+        boolean isAdmin = roles.stream().anyMatch(role -> role.getAuthority().equals("ROLE_ADMIN"));
+
+        Claims claims = Jwts.claims()
+                .subject(username)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 3600000))
+                .add("authorities", new ObjectMapper().writeValueAsString(roles))
+                .add("isAdmin", isAdmin)
+                .build();
+
+
+
+        String token = Jwts.builder()
+                .claims(claims)
+                .signWith(SECRET_KEY)
+                .compact();
 
         response.addHeader(HEADER_AUTHORIZATION, PREFIX_TOKEN + token);
         Map<String,Object> body = new HashMap<>();

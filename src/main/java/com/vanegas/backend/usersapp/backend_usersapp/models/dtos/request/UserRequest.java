@@ -27,4 +27,6 @@ public class UserRequest {
     @Email(message = "El email debe de tener un formato valido")
     private String email;
 
+
+
 }

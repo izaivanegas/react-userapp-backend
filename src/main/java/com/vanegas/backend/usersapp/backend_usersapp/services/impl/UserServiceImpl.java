@@ -1,6 +1,8 @@
 package com.vanegas.backend.usersapp.backend_usersapp.services.impl;
 
+import com.vanegas.backend.usersapp.backend_usersapp.models.entities.Role;
 import com.vanegas.backend.usersapp.backend_usersapp.models.entities.User;
+import com.vanegas.backend.usersapp.backend_usersapp.repositories.RoleRepository;
 import com.vanegas.backend.usersapp.backend_usersapp.repositories.UserRepository;
 import com.vanegas.backend.usersapp.backend_usersapp.services.UserService;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -8,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,12 +18,14 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,RoleRepository roleRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.roleRepository = roleRepository;
     }
 
 
@@ -46,6 +51,10 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("email: El email de usuario ya existe");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        Optional<Role> userRole = roleRepository.findByNombre("ROLE_USER");
+        if(userRole.isPresent()){
+            user.setRoles(Arrays.asList(userRole.get()));
+        }
         return this.userRepository.save(user);
     }
 
