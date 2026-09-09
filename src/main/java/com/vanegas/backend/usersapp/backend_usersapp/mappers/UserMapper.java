@@ -20,6 +20,7 @@ public interface UserMapper {
     UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "admin", source = "admin")
     User toEntity(UserRequest userCreateRequest);
 
     @Mapping(target = "roles", expression = "java(mapRoles(user.getRoles()))")
@@ -33,6 +34,7 @@ public interface UserMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "password", ignore = true)
+    @Mapping(target="admin", source = "admin")
     User toUpdateEntity(UserUpdateRequest userUpdateRequest);
 
     UserUpdateRequest toUpdateResponse(User user);

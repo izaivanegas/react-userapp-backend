@@ -32,6 +32,14 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
 
+        // 🔥 LOG DE TODAS LAS PETICIONES
+        System.out.println("========================================");
+        System.out.println("🔍 MÉTODO: " + request.getMethod());
+        System.out.println("🔍 URL: " + request.getRequestURL());
+        System.out.println("🔍 ORIGIN: " + request.getHeader("Origin"));
+        System.out.println("🔍 AUTHORIZATION: " + request.getHeader("Authorization"));
+        System.out.println("========================================");
+
         String header = request.getHeader(HEADER_AUTHORIZATION);
         if (header == null || !header.startsWith(PREFIX_TOKEN)) {
             //Dejamos que regrese a SpringSecurityFilter
@@ -53,14 +61,13 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
             Claims claims = Jwts.parser().verifyWith(SECRET_KEY).build().parseSignedClaims(token).getPayload();
             username = claims.getSubject();
 
+            System.out.println("👤 Usuario: " + username);
+
             Object authoritiesClaims = claims.get("authorities");
 
+            System.out.println("📋 authoritiesClaims: " + authoritiesClaims);
 
-            System.out.println("..--<"+Arrays.asList(new ObjectMapper()
-                    .readValue(
-                            authoritiesClaims.toString().getBytes(),SimpleGrantedAuthority[].class
-                    ))
-            );
+
 
             Collection<? extends GrantedAuthority> authorities =
                     Arrays.asList(
@@ -70,15 +77,22 @@ public class JwtValidationFilter extends BasicAuthenticationFilter {
                                     )
                     );
 
-            authorities.stream().forEach(authority -> System.out.println("Authority2: " + authority.getAuthority()));
+            System.out.println("📋 Autoridades extraídas:");
+            authorities.forEach(auth -> System.out.println("   - " + auth.getAuthority()));
+
 
             //authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            System.out.println("✅ Autenticación establecida para: " + username);
+
+
             chain.doFilter(request, response);
 
         }catch (Exception e){
+            System.out.println("❌ Error validando token: " + e.getMessage());
             Map<String, String> body = new HashMap<>();
             body.put("error",e.getMessage());
             body.put("message", "El token JWT no es valido");

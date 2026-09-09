@@ -26,4 +26,7 @@ public class UserUpdateRequest {
     @Email(message = "El email debe de tener un formato valido")
     private String email;
 
+
+    private Boolean admin;
+
 }

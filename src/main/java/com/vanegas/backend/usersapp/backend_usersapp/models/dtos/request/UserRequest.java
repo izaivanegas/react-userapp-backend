@@ -28,5 +28,7 @@ public class UserRequest {
     private String email;
 
 
+    private Boolean admin;
+
 
 }

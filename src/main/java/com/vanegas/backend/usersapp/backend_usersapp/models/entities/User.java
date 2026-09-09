@@ -43,4 +43,21 @@ public class User {
     List<Role> roles = new ArrayList<>();
 
 
+    @Transient
+    private Boolean admin;
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "admin=" + admin +
+                ", email='" + email + '\'' +
+                ", password='" + password + '\'' +
+                ", username='" + username + '\'' +
+                ", id=" + id +
+                '}';
+    }
+
+
+
+
 }
