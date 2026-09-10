@@ -24,6 +24,7 @@ public interface UserMapper {
     User toEntity(UserRequest userCreateRequest);
 
     @Mapping(target = "roles", expression = "java(mapRoles(user.getRoles()))")
+    @Mapping(target = "admin", source = "admin")
     UserResponse toResponse(User user);
 
     List<UserResponse> toResponseList(List<User> users);

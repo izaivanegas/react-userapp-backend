@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Servicios encargados de procesar a los usuarios en el sistema
@@ -43,7 +44,22 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public List<User> findAll() {
-        return userRepository.findAll();
+        List<User> users = userRepository.findAll();
+        if( !users.isEmpty() ){
+            users.forEach(user->user.setAdmin(isUserAdmin(user)));
+        }
+        return users;
+    }
+
+
+    /**
+     *
+     * @param user
+     * @return
+     */
+    @Override
+    public boolean isUserAdmin(User user) {
+        return user.getRoles().stream().anyMatch(role->role.getNombre().contains("ADMIN"));
     }
 
     @Override
@@ -135,6 +151,7 @@ public class UserServiceImpl implements UserService {
         }
         return resultingUser;
     }
+
 
     /**
      * Actualiza los roles del usuario dependiendo si es administrador o no

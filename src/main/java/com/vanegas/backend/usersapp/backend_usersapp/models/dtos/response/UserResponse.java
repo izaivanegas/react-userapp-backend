@@ -22,5 +22,6 @@ public class UserResponse {
 
     private List<RoleDTO> roles;
 
+    private Boolean admin;
 
 }
