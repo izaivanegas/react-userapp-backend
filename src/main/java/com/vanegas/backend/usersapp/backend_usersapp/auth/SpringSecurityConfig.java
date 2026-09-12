@@ -4,6 +4,7 @@ package com.vanegas.backend.usersapp.backend_usersapp.auth;
 import com.vanegas.backend.usersapp.backend_usersapp.auth.filters.JwtAuthenticationFilter;
 import com.vanegas.backend.usersapp.backend_usersapp.auth.filters.JwtValidationFilter;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,6 +30,9 @@ public class SpringSecurityConfig {
 
     private final AuthenticationConfiguration authenticationConfiguration;
 
+    @Value("${app.cors.allowed-origins}")
+    public String allowedOriginsString;
+
     public SpringSecurityConfig(AuthenticationConfiguration authenticationConfiguration) {
         this.authenticationConfiguration = authenticationConfiguration;
     }
@@ -44,11 +48,11 @@ public class SpringSecurityConfig {
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
         return http.authorizeHttpRequests(authz ->
-                authz.requestMatchers(HttpMethod.GET,"/users").permitAll()
-                        .requestMatchers(HttpMethod.GET,"/{id}").hasAnyRole("ADMIN","USER","MANAGER")
-                        .requestMatchers(HttpMethod.POST,"/adduser").hasAnyRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT,"/{id}").hasAnyRole("ADMIN","USER")
-                        .requestMatchers(HttpMethod.DELETE,"/{id}").hasRole("ADMIN")
+                authz.requestMatchers(HttpMethod.GET,"/api/users").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/api/users/{id}").hasAnyRole("ADMIN","USER","MANAGER")
+                        .requestMatchers(HttpMethod.POST,"/api/users").hasAnyRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT,"/api/users/{id}").hasAnyRole("ADMIN","USER")
+                        .requestMatchers(HttpMethod.DELETE,"/api/users/{id}").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilter(new JwtAuthenticationFilter(authenticationManager()))
                 .addFilter(new JwtValidationFilter(authenticationManager()))
@@ -70,7 +74,12 @@ public class SpringSecurityConfig {
     CorsConfigurationSource corsConfigurationSource(){
         CorsConfiguration configuration =  new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
+
+        // Parsear la lista de orígenes desde la variable
+        List<String> allowedOrigins = Arrays.asList(allowedOriginsString.split(","));
+        System.out.println("🔥 CORS ALLOWED ORIGINS: " + allowedOrigins);
+
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
         configuration.setAllowCredentials(true);

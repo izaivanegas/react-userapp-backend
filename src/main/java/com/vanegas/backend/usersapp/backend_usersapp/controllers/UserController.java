@@ -28,8 +28,7 @@ import java.util.Optional;
  * @since 2026-01-01
  */
 @RestController
-@RequestMapping("/")
-@CrossOrigin(origins = "http://localhost:5173")
+@RequestMapping("/api/users")
 public class UserController {
 
     private final UserService userService;
@@ -48,7 +47,7 @@ public class UserController {
      * @param user
      * @return
      */
-    @PostMapping("adduser")
+    @PostMapping
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody UserRequest user, BindingResult result) {
         if(result.hasErrors()){
            return ResponseEntity.badRequest().body(ApiResponse.error(getValidationErrors(result)));
@@ -114,7 +113,7 @@ public class UserController {
      *
      * @return
      */
-    @GetMapping("users")
+    @GetMapping
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
         try{
             return ResponseEntity.ok(ApiResponse.success(userMapper.toResponseList(this.userService.findAll()),"Usuarios obtenidos exitosamente",HttpStatus.OK.value()));
