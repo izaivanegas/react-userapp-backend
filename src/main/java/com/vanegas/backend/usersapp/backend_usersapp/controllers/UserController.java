@@ -8,6 +8,7 @@ import com.vanegas.backend.usersapp.backend_usersapp.models.dtos.response.UserRe
 import com.vanegas.backend.usersapp.backend_usersapp.models.entities.User;
 import com.vanegas.backend.usersapp.backend_usersapp.services.UserService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -52,42 +53,10 @@ public class UserController {
         if(result.hasErrors()){
            return ResponseEntity.badRequest().body(ApiResponse.error(getValidationErrors(result)));
         }
-        UserResponse resultingUser = null;
-        if(user == null){
-            //No hay usuario por guardar
-            return ResponseEntity.badRequest().body(null);
-        }else{
-            //1. validacion de entrada
-            //2. llamar al servicio
-            try{
-                User newUser = userMapper.toEntity(user);
-                resultingUser = userMapper.toResponse(this.userService.saveUser(newUser));
-
-                if ( resultingUser != null ){
-                    return ResponseEntity.status(HttpStatus.CREATED).body(
-                            ApiResponse.success(resultingUser,"Usuario creado exitosamente", HttpStatus.CREATED.value())
-                    );
-                }else{
-                    return ResponseEntity.badRequest().body(ApiResponse.error("No se ha creado el usuario"));
-                }
-            }catch (RuntimeException e){
-                Map<String,String> errors = new HashMap<>();
-                String message = e.getMessage();
-                if(message.startsWith("username:")){
-                    errors.put("username", message.substring(9));
-                }else if ( message.startsWith("email:")){
-                    errors.put("email",message.substring(9));
-                }else{
-                    errors.put("general",message);
-                }
-                return ResponseEntity.badRequest().body(
-                        ApiResponse.error(errors,"Error de validación", HttpStatus.BAD_REQUEST.value())
-                );
-            }
-            catch (Exception e){
-                return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-            }
-        }
+        Optional<UserResponse> resultingUser = this.userService.saveUser(user);
+        return resultingUser.map(userCreado->
+                ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(userCreado,"Usuario creado exitosamente", HttpStatus.CREATED.value())))
+                .orElse(ResponseEntity.badRequest().body(ApiResponse.error("No se ha creado el usuario")));
 
     }
 
@@ -98,13 +67,9 @@ public class UserController {
         if(id == null || id <= 0){
             return ResponseEntity.badRequest().build();
         }
-        Optional<User> resultingUser = this.userService.findUserById(id);
-        if(resultingUser.isPresent()){
-            return ResponseEntity.ok(ApiResponse.success(userMapper.toResponse(resultingUser.get()),""));
-
-        }else{
-            return ResponseEntity.badRequest().body(ApiResponse.error("Ne se ha encontrado el usuario"));
-        }
+        Optional<UserResponse> resultingUser = this.userService.findUserResponseById(id);
+        return resultingUser.map(userResponse -> ResponseEntity.ok(ApiResponse.success(userResponse,"Usuario correctamente recuperado")))
+                .orElse(ResponseEntity.badRequest().body(ApiResponse.error("No se ha encontrado el usuario")));
     }
 
 
@@ -116,7 +81,7 @@ public class UserController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
         try{
-            return ResponseEntity.ok(ApiResponse.success(userMapper.toResponseList(this.userService.findAll()),"Usuarios obtenidos exitosamente",HttpStatus.OK.value()));
+            return ResponseEntity.ok(ApiResponse.success((this.userService.findAll()),"Usuarios obtenidos exitosamente",HttpStatus.OK.value()));
         }catch (Exception e){
             return ResponseEntity.badRequest().body(ApiResponse.error("Errore la obtener la lista de usuarios: " + e.getMessage()));
         }
@@ -131,16 +96,12 @@ public class UserController {
         if(result.hasErrors()){
             return ResponseEntity.badRequest().body(ApiResponse.error(getValidationErrors(result),"Problema al actualizar",HttpStatus.NOT_FOUND.value()));
         }
-        try{
-            User updatedUser = this.userService.updateUser(userMapper.toUpdateEntity(user), id);
-            if(updatedUser != null){
-                return ResponseEntity.status(HttpStatus.CREATED).body( ApiResponse.success(userMapper.toResponse(updatedUser),"Usuario actualizado",HttpStatus.OK.value()));
-            }else{
-                return ResponseEntity.badRequest().body(ApiResponse.error("No se ha actualizado la informacion del usuario"));
-            }
-        }catch (Exception e){
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+            Optional<UserResponse> updatedUser = this.userService.updateUser(user, id);
+
+        return updatedUser.map(userResponse -> ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(userResponse,"Usuario actualizado")))
+                    .orElse(
+                            ResponseEntity.badRequest().body(ApiResponse.error("No se ha actualizado la informacion del usuario"))
+                    );
     }
 
 /**
@@ -150,15 +111,8 @@ public class UserController {
 
     @DeleteMapping("{id}")
     public ResponseEntity<ApiResponse<UserResponse>> deleteUser(@PathVariable("id") Long id){
-        if( id == null || id <= 0 ){
-            return ResponseEntity.badRequest().body(ApiResponse.error("El id no es un valor valido"));
-        }
-        Optional<User> userfound = this.userService.findUserById(id);
-        if( !userfound.isPresent() ){
-            return ResponseEntity.badRequest().body(ApiResponse.error("No se ha encontrado el usuario a eliminar"));
-        }
         try{
-            this.userService.deleteUser(userfound.get().getId());
+            this.userService.deleteUser(id);
             return ResponseEntity.ok(ApiResponse.success(null, "Se ha eliminado el usuario exitosamente", HttpStatus.OK.value()));
         }catch (Exception e){
             return ResponseEntity.badRequest().body(ApiResponse.error("Se han encontrado errores al eliminar el usuario:" + e.getMessage()));
@@ -173,9 +127,6 @@ public class UserController {
      */
     private Map<String,String> getValidationErrors(BindingResult result){
         Map<String, String> errors = new HashMap<>();
-
-       result.getFieldErrors().forEach(e-> System.out.println(e.getDefaultMessage()));
-
         result.getFieldErrors().forEach(error->errors.put(error.getField(),error.getDefaultMessage()));
         return errors;
     }

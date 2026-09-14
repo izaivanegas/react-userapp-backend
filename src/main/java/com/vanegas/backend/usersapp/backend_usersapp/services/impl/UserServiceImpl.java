@@ -1,5 +1,13 @@
 package com.vanegas.backend.usersapp.backend_usersapp.services.impl;
 
+import com.vanegas.backend.usersapp.backend_usersapp.Exceptions.EmailAlreadyExistsException;
+import com.vanegas.backend.usersapp.backend_usersapp.Exceptions.UserAlreadyExistsException;
+import com.vanegas.backend.usersapp.backend_usersapp.Exceptions.UserNotFoundException;
+import com.vanegas.backend.usersapp.backend_usersapp.mappers.UserMapper;
+import com.vanegas.backend.usersapp.backend_usersapp.models.dtos.request.UserRequest;
+import com.vanegas.backend.usersapp.backend_usersapp.models.dtos.request.UserUpdateRequest;
+import com.vanegas.backend.usersapp.backend_usersapp.models.dtos.response.ApiResponse;
+import com.vanegas.backend.usersapp.backend_usersapp.models.dtos.response.UserResponse;
 import com.vanegas.backend.usersapp.backend_usersapp.models.entities.Role;
 import com.vanegas.backend.usersapp.backend_usersapp.models.entities.User;
 import com.vanegas.backend.usersapp.backend_usersapp.repositories.RoleRepository;
@@ -7,6 +15,7 @@ import com.vanegas.backend.usersapp.backend_usersapp.repositories.UserRepository
 import com.vanegas.backend.usersapp.backend_usersapp.services.UserService;
 import com.vanegas.backend.usersapp.backend_usersapp.shared.validation.ValidationResult;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,23 +41,26 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,RoleRepository roleRepository) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,RoleRepository roleRepository,UserMapper userMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.roleRepository = roleRepository;
+        this.userMapper = userMapper;
     }
 
 
     @Override
     @Transactional(readOnly = true)
-    public List<User> findAll() {
+    public List<UserResponse> findAll() {
         List<User> users = userRepository.findAll();
         if( !users.isEmpty() ){
             users.forEach(user->user.setAdmin(isUserAdmin(user)));
         }
-        return users;
+
+        return  userMapper.toResponseList(users);
     }
 
 
@@ -68,6 +80,12 @@ public class UserServiceImpl implements UserService {
         return this.userRepository.findById(id);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<UserResponse> findUserResponseById(Long id) {
+        return this.userRepository.findById(id).map(userMapper::toResponse);
+    }
+
     /**
      * Metodo que guarda un usuario en la base de datos
      * <p>Las validaciones que aplican:</p>
@@ -80,16 +98,18 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
-    public User saveUser(User user) {
-        if(userRepository.existsByUsername(user.getUsername())){
-            throw new RuntimeException("username: El username de usuario ya existe");
+    public Optional<UserResponse> saveUser(UserRequest user) {
+        User newUser = userMapper.toEntity(user);
+        if(userRepository.existsByUsername(newUser.getUsername())){
+            throw new UserAlreadyExistsException(String.format("username: El username %s ya existe en el sistema",newUser.getUsername()));
         }
-        if(userRepository.existsByEmail(user.getEmail())){
-            throw new RuntimeException("email: El email de usuario ya existe");
+        if(userRepository.existsByEmail(newUser.getEmail())){
+            throw new EmailAlreadyExistsException(String.format("email: El email %s ya existe en el sistema",newUser.getEmail()));
         }
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRoles(obtenerRolesPorUsuario(user));
-        return this.userRepository.save(user);
+        newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
+        newUser.setRoles(obtenerRolesPorUsuario(newUser));
+
+        return Optional.of(userMapper.toResponse(this.userRepository.save(newUser)));
     }
 
     /**
@@ -115,6 +135,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(Long id) {
+        Optional<User> userfound = findUserById(id);
+        if( !userfound.isPresent() ){
+            throw new UserNotFoundException(String.format("El id %d no se encontro en el sistema",id));
+        }
         this.userRepository.deleteById(id);
     }
 
@@ -134,11 +158,12 @@ public class UserServiceImpl implements UserService {
      * @return
      */
     @Override
-    public User updateUser(User user, Long id) {
+    public Optional<UserResponse> updateUser(UserUpdateRequest user, Long id) {
         User resultingUser = null;
-        if (user != null && id != null && id > 0) {
-            ValidationResult validacionUsuarioActualizable = validacionUsuarioActualizable(user,id);
-            validacionUsuarioActualizable.throwIfInvalid();
+        User userWeb = userMapper.toUpdateEntity(user);
+        if (isUpdatableUser(userWeb, id)) {
+            ValidationResult usernameEmailResult = validateUsernameEmailIsNotDuplicated(userWeb,id);
+            usernameEmailResult.throwIfInvalid();
             Optional<User> userDb = userRepository.findById(id);
             if (userDb.isPresent()) {
                 resultingUser = userDb.get();
@@ -149,10 +174,13 @@ public class UserServiceImpl implements UserService {
                 this.userRepository.save(resultingUser);
             }
         }
-        return resultingUser;
+        return Optional.of(userMapper.toResponse(resultingUser!= null? resultingUser:new User()));
     }
 
 
+    public boolean isUpdatableUser(User user, Long id){
+        return user!=null && id != null  && id > 0;
+    }
     /**
      * Actualiza los roles del usuario dependiendo si es administrador o no
      * <p>El usuario por defecto debera de tener al menos el rol de usuario aqui solo se debe de verificar que si
@@ -184,7 +212,7 @@ public class UserServiceImpl implements UserService {
      * @param user
      * @return
      */
-    private ValidationResult validacionUsuarioActualizable(User user, Long retrievedId) {
+    private ValidationResult validateUsernameEmailIsNotDuplicated(User user, Long retrievedId) {
         List<String> errores = new ArrayList<>();
 
         try {
@@ -192,12 +220,7 @@ public class UserServiceImpl implements UserService {
             Optional<User> userByUsernam = null;
             userByUsernam = userRepository.findByUsername(user.getUsername());
             if(userByUsernam.isPresent()){
-                System.out.println("Esta passndo");
                 User foundUserByUsername = userByUsernam.get();
-                System.out.println("🔍 OBJETO ENCONTRADO:");
-                System.out.println("   ID: " + foundUserByUsername.getId());
-                System.out.println("   Username: " + foundUserByUsername.getUsername());
-                System.out.println("   Email: " + foundUserByUsername.getEmail());
                 if(!foundUserByUsername.getId().equals(retrievedId)){
                     errores.add(String.format("username: El username %s de usuario ya existe", user.getUsername()));
                 }
@@ -208,10 +231,6 @@ public class UserServiceImpl implements UserService {
                 userByEmail = userRepository.findByEmail(user.getEmail());
                 if (userByEmail.isPresent()) {
                     User foundUser2 = userByEmail.get();
-                    System.out.println("🔍 OBJETO ENCONTRADO:");
-                    System.out.println("   ID: " + foundUser2.getId());
-                    System.out.println("   Username: " + foundUser2.getUsername());
-                    System.out.println("   Email: " + foundUser2.getEmail());
                     if (!foundUser2.getId().equals(retrievedId)) {
                         errores.add(String.format("email: El email %s de usuario ya existe", user.getEmail()));
                     }

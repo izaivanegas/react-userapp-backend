@@ -1,5 +1,8 @@
 package com.vanegas.backend.usersapp.backend_usersapp.services;
 
+import com.vanegas.backend.usersapp.backend_usersapp.models.dtos.request.UserRequest;
+import com.vanegas.backend.usersapp.backend_usersapp.models.dtos.request.UserUpdateRequest;
+import com.vanegas.backend.usersapp.backend_usersapp.models.dtos.response.UserResponse;
 import com.vanegas.backend.usersapp.backend_usersapp.models.entities.User;
 
 import java.util.List;
@@ -13,7 +16,7 @@ public interface UserService {
      *
      * @return
      */
-    List<User> findAll();
+    List<UserResponse> findAll();
 
 
     /**
@@ -23,12 +26,14 @@ public interface UserService {
      */
     Optional<User> findUserById(Long id);
 
+    Optional<UserResponse> findUserResponseById(Long id);
+
     /**
      * Method that save  a user objet in user table
      *
      * @return
      */
-    User saveUser(User user);
+    Optional<UserResponse> saveUser(UserRequest user);
 
 
     /**
@@ -39,7 +44,7 @@ public interface UserService {
     void deleteUser(Long id);
 
 
-    User updateUser(User user, Long id);
+    Optional<UserResponse> updateUser(UserUpdateRequest user, Long id);
 
 
     boolean isUserAdmin(User user);
