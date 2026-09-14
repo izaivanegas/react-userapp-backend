@@ -84,6 +84,7 @@ public class UserServiceImpl implements UserService {
      * @return
      */
     @Override
+    @Transactional(readOnly = true)
     public Page<UserResponse> findAll(Pageable pageable) {
 
         Page<User> userPage = this.userRepository.findAll(pageable);
