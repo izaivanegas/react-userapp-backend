@@ -15,6 +15,8 @@ import com.vanegas.backend.usersapp.backend_usersapp.repositories.UserRepository
 import com.vanegas.backend.usersapp.backend_usersapp.services.UserService;
 import com.vanegas.backend.usersapp.backend_usersapp.shared.validation.ValidationResult;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -72,6 +74,22 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean isUserAdmin(User user) {
         return user.getRoles().stream().anyMatch(role->role.getNombre().contains("ADMIN"));
+    }
+
+    /**
+     * Paginacion de usuarios
+     *
+     *
+     * @param pageable
+     * @return
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Page<UserResponse> findAll(Pageable pageable) {
+
+        Page<User> userPage = this.userRepository.findAll(pageable);
+
+        return userPage.map(userMapper::toResponse);
     }
 
     @Override

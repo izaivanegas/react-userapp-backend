@@ -4,6 +4,8 @@ import com.vanegas.backend.usersapp.backend_usersapp.models.dtos.request.UserReq
 import com.vanegas.backend.usersapp.backend_usersapp.models.dtos.request.UserUpdateRequest;
 import com.vanegas.backend.usersapp.backend_usersapp.models.dtos.response.UserResponse;
 import com.vanegas.backend.usersapp.backend_usersapp.models.entities.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -49,5 +51,9 @@ public interface UserService {
 
     boolean isUserAdmin(User user);
 
+
+
+
+    Page<UserResponse> findAll(Pageable pageable);
 
 }
