@@ -4,8 +4,9 @@ import com.vanegas.backend.usersapp.backend_usersapp.models.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -19,6 +20,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("select u from User u where u.username = ?1")
     Optional<User> getUserByUsername(String username);
+
+
+    Page<User> findAll(Pageable pageable);
+
 
 
 }

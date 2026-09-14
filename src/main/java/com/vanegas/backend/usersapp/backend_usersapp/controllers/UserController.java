@@ -8,6 +8,9 @@ import com.vanegas.backend.usersapp.backend_usersapp.models.dtos.response.UserRe
 import com.vanegas.backend.usersapp.backend_usersapp.models.entities.User;
 import com.vanegas.backend.usersapp.backend_usersapp.services.UserService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +43,8 @@ public class UserController {
         this.userService = userService;
         this.userMapper = userMapper;
     }
+
+
 
 
     /**
@@ -87,6 +92,18 @@ public class UserController {
         }
 
     }
+
+    @GetMapping("/page/{page}")
+    public ResponseEntity<ApiResponse<Page<UserResponse>>> getAllUsers(@PathVariable Integer page) {
+        Pageable pagina = PageRequest.of(page,6);
+        try{
+            return ResponseEntity.ok(ApiResponse.success((this.userService.findAll(pagina)),"Usuarios obtenidos exitosamente",HttpStatus.OK.value()));
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(ApiResponse.error("Errore la obtener la lista de usuarios: " + e.getMessage()));
+        }
+
+    }
+
 
     /**
      * Update
