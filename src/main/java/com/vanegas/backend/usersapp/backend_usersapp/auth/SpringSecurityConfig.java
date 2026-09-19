@@ -48,7 +48,10 @@ public class SpringSecurityConfig {
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
         return http.authorizeHttpRequests(authz ->
-                authz.requestMatchers(HttpMethod.GET,"/api/users").permitAll()
+                authz
+                        .requestMatchers(HttpMethod.OPTIONS,"/**").permitAll()
+                        .requestMatchers("/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/api/users").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/users/page/{page}").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/users/{id}").hasAnyRole("ADMIN","USER","MANAGER")
                         .requestMatchers(HttpMethod.POST,"/api/users").hasAnyRole("ADMIN")
@@ -80,8 +83,15 @@ public class SpringSecurityConfig {
         List<String> allowedOrigins = Arrays.asList(allowedOriginsString.split(","));
         System.out.println("🔥 CORS ALLOWED ORIGINS: " + allowedOrigins);
 
+
+        // Usa PATTERNS, no origins, para poder usar [*] en el puerto
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:[*]",
+                "http://127.0.0.1:[*]"
+        ));
+
         configuration.setAllowedOrigins(allowedOrigins);
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
         configuration.setAllowCredentials(true);
 
